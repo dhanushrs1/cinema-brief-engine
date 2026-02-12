@@ -1,0 +1,45 @@
+/**
+ * Cinema Brief Engine — Frontend Styles
+ * Styles for shortcode output (pros/cons lists) on the public site.
+ *
+ * @package CinemaBrief
+ * @since 3.3
+ */
+
+/* ==========================================================================
+   PROS LIST [cb_pros_list]
+   ========================================================================== */
+.cb-pros-list {
+    list-style: none;
+    padding: 0;
+    margin: 1em 0;
+}
+
+.cb-pros-item {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: #f0faf0;
+    border-left: 3px solid #46b450;
+    border-radius: 3px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* ==========================================================================
+   CONS LIST [cb_cons_list]
+   ========================================================================== */
+.cb-cons-list {
+    list-style: none;
+    padding: 0;
+    margin: 1em 0;
+}
+
+.cb-cons-item {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: #fef0f0;
+    border-left: 3px solid #d63638;
+    border-radius: 3px;
+    font-size: 15px;
+    line-height: 1.5;
+}

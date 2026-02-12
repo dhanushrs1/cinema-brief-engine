@@ -1,19 +1,34 @@
 <?php
+/**
+ * Cinema Brief Engine — Custom Post Type: Movie Reviews
+ * Registers the movie_reviews CPT and provides shortcodes for pros/cons.
+ *
+ * @package CinemaBrief
+ * @since 3.0
+ */
+
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// =============================================================================
+// 1. REGISTER CUSTOM POST TYPE
+// =============================================================================
 function cb_register_cpt() {
     $labels = array(
-        'name'               => 'Movie Reviews',
-        'singular_name'      => 'Movie Review',
-        'menu_name'          => 'Movie Reviews',
-        'add_new'            => 'Add Review',
-        'add_new_item'       => 'Add New Movie Review',
-        'edit_item'          => 'Edit Review',
-        'new_item'           => 'New Review',
-        'view_item'          => 'View Review',
-        'search_items'       => 'Search Reviews',
-        'not_found'          => 'No reviews found',
-        'all_items'          => 'All Reviews',
+        'name'               => __( 'Movie Reviews', 'cinemabrief' ),
+        'singular_name'      => __( 'Movie Review', 'cinemabrief' ),
+        'menu_name'          => __( 'Movie Reviews', 'cinemabrief' ),
+        'add_new'            => __( 'Add Review', 'cinemabrief' ),
+        'add_new_item'       => __( 'Add New Movie Review', 'cinemabrief' ),
+        'edit_item'          => __( 'Edit Review', 'cinemabrief' ),
+        'new_item'           => __( 'New Review', 'cinemabrief' ),
+        'view_item'          => __( 'View Review', 'cinemabrief' ),
+        'view_items'         => __( 'View Reviews', 'cinemabrief' ),
+        'search_items'       => __( 'Search Reviews', 'cinemabrief' ),
+        'not_found'          => __( 'No reviews found', 'cinemabrief' ),
+        'not_found_in_trash' => __( 'No reviews found in Trash', 'cinemabrief' ),
+        'all_items'          => __( 'All Reviews', 'cinemabrief' ),
+        'archives'           => __( 'Review Archives', 'cinemabrief' ),
+        'filter_items_list'  => __( 'Filter reviews list', 'cinemabrief' ),
     );
 
     $args = array(
@@ -29,7 +44,7 @@ function cb_register_cpt() {
         'capability_type'     => 'post',
         'has_archive'         => 'reviews',
         'hierarchical'        => false,
-        'taxonomies'          => array( 'post_tag' ), // <--- THIS ENABLES SHARED TAGS
+        'taxonomies'          => array( 'post_tag' ),
         'supports'            => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'revisions' ),
         'show_in_rest'        => true,
     );
@@ -38,26 +53,49 @@ function cb_register_cpt() {
 }
 add_action( 'init', 'cb_register_cpt' );
 
-// Shortcode to display Pros list with Checkmarks
-add_shortcode('cb_pros_list', function() {
-    $pros = get_post_meta(get_the_ID(), '_cb_pros', true);
-    if(!$pros) return '';
-    $items = explode("\n", $pros);
-    $html = '<ul style="list-style:none; padding:0;">';
-    foreach($items as $item) {
-        if(trim($item)) $html .= '<li style="margin-bottom:8px;">✅ ' . esc_html($item) . '</li>';
-    }
-    return $html . '</ul>';
-});
 
-// Shortcode to display Cons list with Crosses
-add_shortcode('cb_cons_list', function() {
-    $cons = get_post_meta(get_the_ID(), '_cb_cons', true);
-    if(!$cons) return '';
-    $items = explode("\n", $cons);
-    $html = '<ul style="list-style:none; padding:0;">';
-    foreach($items as $item) {
-        if(trim($item)) $html .= '<li style="margin-bottom:8px;">❌ ' . esc_html($item) . '</li>';
+// =============================================================================
+// 2. SHORTCODES (Frontend Pros/Cons Lists)
+//    - Uses CSS classes instead of inline styles
+//    - Styles loaded via frontend-style.css
+// =============================================================================
+
+/**
+ * [cb_pros_list] — Display pros with checkmarks.
+ */
+add_shortcode( 'cb_pros_list', function() {
+    $pros = get_post_meta( get_the_ID(), '_cb_pros', true );
+    if ( ! $pros ) return '';
+
+    $items = explode( "\n", $pros );
+    $html  = '<ul class="cb-pros-list">';
+    foreach ( $items as $item ) {
+        $item = trim( $item );
+        if ( $item ) {
+            $html .= '<li class="cb-pros-item">✅ ' . esc_html( $item ) . '</li>';
+        }
     }
-    return $html . '</ul>';
-});
+    $html .= '</ul>';
+
+    return $html;
+} );
+
+/**
+ * [cb_cons_list] — Display cons with crosses.
+ */
+add_shortcode( 'cb_cons_list', function() {
+    $cons = get_post_meta( get_the_ID(), '_cb_cons', true );
+    if ( ! $cons ) return '';
+
+    $items = explode( "\n", $cons );
+    $html  = '<ul class="cb-cons-list">';
+    foreach ( $items as $item ) {
+        $item = trim( $item );
+        if ( $item ) {
+            $html .= '<li class="cb-cons-item">❌ ' . esc_html( $item ) . '</li>';
+        }
+    }
+    $html .= '</ul>';
+
+    return $html;
+} );

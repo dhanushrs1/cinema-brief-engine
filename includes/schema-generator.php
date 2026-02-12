@@ -1,9 +1,18 @@
 <?php
+/**
+ * Cinema Brief Engine — Schema Generator
+ * Handles save logic, schema building, and frontend JSON-LD injection.
+ *
+ * @package CinemaBrief
+ * @since 3.0
+ */
+
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 // =============================================================================
 // 1. SAVE LOGIC CONTROLLER
 //    - Saves Meta Fields & Triggers Schema Generation
+//    - Hooked to save_post_movie_reviews (CPT-specific for performance)
 // =============================================================================
 function cb_save_post_data( $post_id ) {
     // Security & Permissions Check
@@ -11,120 +20,208 @@ function cb_save_post_data( $post_id ) {
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
     if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 
-    // 1. Save All Meta Fields
-    $fields = ['cb_rating', 'cb_director', 'cb_cast', 'cb_duration', 'cb_release_date', 'cb_verdict', 'cb_pros', 'cb_cons'];
-    
-    foreach ( $fields as $field ) {
-        if ( isset( $_POST[$field] ) ) {
-            // Use sanitize_textarea_field for Pros/Cons to preserve new lines
-            if ( $field == 'cb_pros' || $field == 'cb_cons' ) {
-                update_post_meta( $post_id, '_' . $field, sanitize_textarea_field( $_POST[$field] ) );
-            } else {
-                update_post_meta( $post_id, '_' . $field, sanitize_text_field( $_POST[$field] ) );
-            }
+    // Save All Meta Fields
+    $text_fields    = array( 'cb_director', 'cb_cast', 'cb_duration', 'cb_release_date', 'cb_verdict' );
+    $textarea_fields = array( 'cb_pros', 'cb_cons', 'cb_synopsis' );
+
+    // --- Rating: Server-side validation (clamp 0-10) ---
+    if ( isset( $_POST['cb_rating'] ) ) {
+        $rating_val = floatval( $_POST['cb_rating'] );
+        $rating_val = max( 0, min( 10, $rating_val ) );
+        // Round to 1 decimal place for consistency
+        $rating_val = round( $rating_val, 1 );
+        update_post_meta( $post_id, '_cb_rating', $rating_val );
+    }
+
+    // --- Text fields ---
+    foreach ( $text_fields as $field ) {
+        if ( isset( $_POST[ $field ] ) ) {
+            update_post_meta( $post_id, '_' . $field, sanitize_text_field( $_POST[ $field ] ) );
         }
     }
 
-    // 2. Handle Schema Generation
-    // If the user manually edited the Schema box, save that specific version.
+    // --- Textarea fields (preserve newlines) ---
+    foreach ( $textarea_fields as $field ) {
+        if ( isset( $_POST[ $field ] ) ) {
+            update_post_meta( $post_id, '_' . $field, sanitize_textarea_field( $_POST[ $field ] ) );
+        }
+    }
+
+    // Handle Schema Generation
     if ( ! empty( $_POST['cb_schema_json'] ) ) {
-        // wp_unslash prevents double escaping of quotes
-        update_post_meta( $post_id, '_cb_schema_json', wp_unslash( $_POST['cb_schema_json'] ) );
+        // Manual override — validate as JSON to prevent XSS
+        $raw_json = wp_unslash( $_POST['cb_schema_json'] );
+        $decoded  = json_decode( $raw_json );
+
+        if ( json_last_error() === JSON_ERROR_NONE && $decoded !== null ) {
+            // Re-encode to sanitize — strips any non-JSON content
+            $clean_json = json_encode(
+                $decoded,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+            update_post_meta( $post_id, '_cb_schema_json', $clean_json );
+        }
+        // If invalid JSON, ignore the manual input and auto-generate
+        else {
+            $json = cb_build_schema( $post_id );
+            update_post_meta( $post_id, '_cb_schema_json', $json );
+        }
     } else {
-        // Otherwise, Auto-Generate it based on the new data
+        // Auto-Generate schema based on meta data
         $json = cb_build_schema( $post_id );
         update_post_meta( $post_id, '_cb_schema_json', $json );
     }
 }
-add_action( 'save_post', 'cb_save_post_data' );
+add_action( 'save_post_movie_reviews', 'cb_save_post_data' );
 
 
 // =============================================================================
 // 2. THE SCHEMA BUILDER (The Brain)
 //    - Converts Meta Data into JSON-LD
+//    - Includes all SEO-critical fields for rich snippets
 // =============================================================================
 function cb_build_schema( $post_id ) {
-    $post = get_post($post_id);
-    
+    $post = get_post( $post_id );
+
     // Retrieve Data
-    $rating = get_post_meta( $post_id, '_cb_rating', true );
-    $director = get_post_meta( $post_id, '_cb_director', true );
-    $cast_str = get_post_meta( $post_id, '_cb_cast', true );
-    $date = get_post_meta( $post_id, '_cb_release_date', true );
-    $pros_str = get_post_meta( $post_id, '_cb_pros', true );
-    $cons_str = get_post_meta( $post_id, '_cb_cons', true );
-    $img_url = get_the_post_thumbnail_url( $post_id, 'full' );
+    $rating       = get_post_meta( $post_id, '_cb_rating', true );
+    $director     = get_post_meta( $post_id, '_cb_director', true );
+    $cast_str     = get_post_meta( $post_id, '_cb_cast', true );
+    $date         = get_post_meta( $post_id, '_cb_release_date', true );
+    $duration_raw = get_post_meta( $post_id, '_cb_duration', true );
+    $synopsis     = get_post_meta( $post_id, '_cb_synopsis', true );
+    $pros_str     = get_post_meta( $post_id, '_cb_pros', true );
+    $cons_str     = get_post_meta( $post_id, '_cb_cons', true );
+    $img_url      = get_the_post_thumbnail_url( $post_id, 'full' );
 
-    // Language Detection (Defaults to Kannada if tagged, else English)
-    $terms = get_the_terms( $post_id, 'movie_language' );
-    $lang_code = ($terms && !is_wp_error($terms)) ? 'kn' : 'en'; 
+    // Language & Genre (via shared helpers)
+    $lang_code    = cb_get_language_code( $post_id );
+    $duration_iso = $duration_raw ? cb_convert_duration_to_iso( $duration_raw ) : '';
 
-    // Process Actors (Split comma-separated string)
-    $actors = [];
-    if($cast_str) {
-        $names = explode(',', $cast_str);
-        foreach($names as $n) {
-            if(trim($n)) $actors[] = ["@type" => "Person", "name" => trim($n)];
+    // Genre Detection
+    $genre_terms = get_the_terms( $post_id, 'movie_genre' );
+    $genres = array();
+    if ( $genre_terms && ! is_wp_error( $genre_terms ) ) {
+        $genres = wp_list_pluck( $genre_terms, 'name' );
+    }
+
+    // -------------------------------------------------------------------------
+    // Process Actors (sanitize before splitting)
+    // -------------------------------------------------------------------------
+    $actors = array();
+    if ( $cast_str ) {
+        $names = explode( ',', sanitize_text_field( $cast_str ) );
+        foreach ( $names as $n ) {
+            $n = trim( $n );
+            if ( $n ) {
+                $actors[] = array( "@type" => "Person", "name" => $n );
+            }
         }
     }
-    
+
+    // -------------------------------------------------------------------------
     // Process Pros (Positive Notes)
-    $positiveNotes = [];
-    if($pros_str) {
-        $items = explode("\n", $pros_str); // Split by new line
+    // -------------------------------------------------------------------------
+    $positiveNotes = array();
+    if ( $pros_str ) {
+        $items = explode( "\n", $pros_str );
         $i = 1;
-        foreach($items as $item) {
-            if(trim($item)) $positiveNotes[] = ["@type" => "ListItem", "position" => $i++, "name" => trim($item)];
+        foreach ( $items as $item ) {
+            $item = trim( $item );
+            if ( $item ) {
+                $positiveNotes[] = array( "@type" => "ListItem", "position" => $i++, "name" => $item );
+            }
         }
     }
 
+    // -------------------------------------------------------------------------
     // Process Cons (Negative Notes)
-    $negativeNotes = [];
-    if($cons_str) {
-        $items = explode("\n", $cons_str);
+    // -------------------------------------------------------------------------
+    $negativeNotes = array();
+    if ( $cons_str ) {
+        $items = explode( "\n", $cons_str );
         $i = 1;
-        foreach($items as $item) {
-            if(trim($item)) $negativeNotes[] = ["@type" => "ListItem", "position" => $i++, "name" => trim($item)];
+        foreach ( $items as $item ) {
+            $item = trim( $item );
+            if ( $item ) {
+                $negativeNotes[] = array( "@type" => "ListItem", "position" => $i++, "name" => $item );
+            }
         }
     }
 
-    // Build the Schema Array
-    $data = [
-        "@context" => "https://schema.org",
-        "@type" => "Review",
-        "itemReviewed" => [
-            "@type" => "Movie",
-            "name" => $post->post_title,
-            "image" => $img_url ? $img_url : "",
-            "datePublished" => $date,
-            "director" => ["@type" => "Person", "name" => $director],
-            "actor" => $actors,
-            "inLanguage" => $lang_code,
-            "countryOfOrigin" => ["@type" => "Country", "name" => "India"]
-        ],
-        "reviewRating" => [
-            "@type" => "Rating",
-            "ratingValue" => $rating ? $rating : "0",
-            "bestRating" => "10", // UPDATED: 10-Point Scale
-            "worstRating" => "1"
-        ],
-        "author" => [
+    // =========================================================================
+    // BUILD THE MOVIE OBJECT
+    // =========================================================================
+    $movie = array(
+        "@type"          => "Movie",
+        "name"           => $post->post_title,
+        "datePublished"  => $date,
+        "director"       => array( "@type" => "Person", "name" => $director ),
+        "actor"          => $actors,
+        "inLanguage"     => $lang_code,
+        "countryOfOrigin" => array( "@type" => "Country", "name" => "India" ),
+    );
+
+    // Conditionally add fields — omit if empty (Google prefers omission)
+    if ( $img_url )               $movie["image"]       = $img_url;
+    if ( ! empty( $genres ) )     $movie["genre"]       = $genres;
+    if ( $duration_iso )          $movie["duration"]    = $duration_iso;
+    if ( $synopsis )              $movie["description"] = $synopsis;
+
+    // =========================================================================
+    // BUILD THE PUBLISHER OBJECT
+    // =========================================================================
+    $logo_url  = cb_get_publisher_logo_url();
+    $publisher = array(
+        "@type" => "Organization",
+        "name"  => "CinemaBrief",
+        "url"   => home_url(),
+    );
+    if ( $logo_url ) {
+        $publisher["logo"] = array(
+            "@type" => "ImageObject",
+            "url"   => $logo_url,
+        );
+    }
+
+    // =========================================================================
+    // BUILD THE FULL REVIEW SCHEMA
+    // =========================================================================
+    $data = array(
+        "@context"         => "https://schema.org",
+        "@type"            => "Review",
+        "url"              => get_permalink( $post_id ),
+        "headline"         => $post->post_title,
+        "mainEntityOfPage" => array(
+            "@type" => "WebPage",
+            "@id"   => get_permalink( $post_id ),
+        ),
+        "datePublished"    => get_the_date( 'c', $post_id ),
+        "dateModified"     => get_the_modified_date( 'c', $post_id ),
+        "itemReviewed"     => $movie,
+        "reviewRating"     => array(
+            "@type"       => "Rating",
+            "ratingValue" => $rating ? strval( $rating ) : "0",
+            "bestRating"  => "10",
+            "worstRating" => "1",
+        ),
+        "author"           => array(
             "@type" => "Organization",
-            "name" => "CinemaBrief",
-            "url" => home_url()
-        ],
-        "reviewBody" => wp_trim_words( $post->post_content, 25 )
-    ];
+            "name"  => "CinemaBrief",
+            "url"   => home_url(),
+        ),
+        "publisher"        => $publisher,
+        "reviewBody"       => wp_trim_words( $post->post_content, 25 ),
+    );
 
     // Inject Positive/Negative Notes only if they exist
-    if(!empty($positiveNotes)) {
-        $data["positiveNotes"] = ["@type" => "ItemList", "itemListElement" => $positiveNotes];
+    if ( ! empty( $positiveNotes ) ) {
+        $data["positiveNotes"] = array( "@type" => "ItemList", "itemListElement" => $positiveNotes );
     }
-    if(!empty($negativeNotes)) {
-        $data["negativeNotes"] = ["@type" => "ItemList", "itemListElement" => $negativeNotes];
+    if ( ! empty( $negativeNotes ) ) {
+        $data["negativeNotes"] = array( "@type" => "ItemList", "itemListElement" => $negativeNotes );
     }
 
-    // Return JSON (Pretty Printed + Unicode support for Kannada)
     return json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 }
 
@@ -132,6 +229,7 @@ function cb_build_schema( $post_id ) {
 // =============================================================================
 // 3. FRONTEND INJECTOR
 //    - Prints the JSON-LD into the <head> of the website
+//    - Priority 20 to prevent theme/plugin conflicts
 // =============================================================================
 function cb_inject_schema() {
     if ( is_singular( 'movie_reviews' ) ) {
@@ -143,4 +241,4 @@ function cb_inject_schema() {
         }
     }
 }
-add_action( 'wp_head', 'cb_inject_schema' );
+add_action( 'wp_head', 'cb_inject_schema', 20 );
