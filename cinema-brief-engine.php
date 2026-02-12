@@ -75,6 +75,9 @@ function cb_load_admin_assets() {
                 'datePublished' => get_the_date( 'c', $post->ID ),
                 'dateModified'  => get_the_modified_date( 'c', $post->ID ),
                 'validatorUrl'  => 'https://validator.schema.org/',
+                // Duration regex (single source of truth — also used in helpers.php)
+                'durationRegexH' => '(\\d+)\\s*h(?:ours?)?',
+                'durationRegexM' => '(\\d+)\\s*m(?:in(?:utes?)?)?',
             ) );
         }
     }

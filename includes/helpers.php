@@ -73,6 +73,10 @@ function cb_get_language_code( $post_id ) {
  * Convert human-readable duration to ISO 8601 format.
  * Supports: "2h 30m", "2h30m", "150m", "2h", "150 min", "2 hours 30 min", "150"
  *
+ * WARNING: The regex patterns below are also passed to JS via wp_localize_script
+ * in cinema-brief-engine.php. Update BOTH if changing the duration parsing logic.
+ * @see assets/js/admin-schema-preview.js → durationToISO()
+ *
  * @since 3.2
  * @param string $raw The raw duration string.
  * @return string ISO 8601 duration (e.g., "PT2H30M") or empty string on failure.

@@ -25,13 +25,18 @@
 
         // =====================================================================
         // Helper: Convert duration to ISO 8601
+        // Regex patterns are passed from PHP (single source of truth)
+        // See also: helpers.php → cb_convert_duration_to_iso()
         // =====================================================================
+        const reH = new RegExp(d.durationRegexH || '(\\d+)\\s*h(?:ours?)?');
+        const reM = new RegExp(d.durationRegexM || '(\\d+)\\s*m(?:in(?:utes?)?)?');
+
         function durationToISO(raw) {
             if (!raw) return '';
             raw = raw.toLowerCase().trim();
             let hours = 0, minutes = 0;
-            let hMatch = raw.match(/(\d+)\s*h(?:ours?)?/);
-            let mMatch = raw.match(/(\d+)\s*m(?:in(?:utes?)?)?/);
+            let hMatch = raw.match(reH);
+            let mMatch = raw.match(reM);
             if (hMatch) hours = parseInt(hMatch[1]);
             if (mMatch) minutes = parseInt(mMatch[1]);
             if (hours === 0 && minutes === 0 && /^\d+$/.test(raw)) minutes = parseInt(raw);
