@@ -72,7 +72,7 @@ add_shortcode( 'cb_pros_list', function() {
     foreach ( $items as $item ) {
         $item = trim( $item );
         if ( $item ) {
-            $html .= '<li class="cb-pros-item">✅ ' . esc_html( $item ) . '</li>';
+            $html .= '<li class="cb-pros-item">✅ ' . wp_kses_post( $item ) . '</li>';
         }
     }
     $html .= '</ul>';
@@ -92,7 +92,7 @@ add_shortcode( 'cb_cons_list', function() {
     foreach ( $items as $item ) {
         $item = trim( $item );
         if ( $item ) {
-            $html .= '<li class="cb-cons-item">❌ ' . esc_html( $item ) . '</li>';
+            $html .= '<li class="cb-cons-item">❌ ' . wp_kses_post( $item ) . '</li>';
         }
     }
     $html .= '</ul>';
