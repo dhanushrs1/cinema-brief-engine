@@ -13,7 +13,7 @@
 
         // 1. Elements
         const inputs = document.querySelectorAll(
-            '#cb_rating, #cb_director, #cb_cast, #cb_duration, #cb_release_date, #cb_pros, #cb_cons, #cb_synopsis'
+            '#cb_movie_title, #cb_rating, #cb_director, #cb_cast, #cb_duration, #cb_release_date, #cb_pros, #cb_cons, #cb_synopsis'
         );
         const outputBox = document.getElementById('cb_schema_json');
 
@@ -52,6 +52,8 @@
         // =====================================================================
         function updateSchema() {
             // Gather Data from inputs
+            let movieTitleInput = document.getElementById('cb_movie_title');
+            let movieName = (movieTitleInput && movieTitleInput.value.trim()) || d.movieName || d.movieTitle || "";
             let rating    = document.getElementById('cb_rating').value || "0";
             let director  = document.getElementById('cb_director').value || "";
             let date      = document.getElementById('cb_release_date').value || "";
@@ -83,7 +85,7 @@
             // Build Movie Object (conditionally include fields)
             let movie = {
                 "@type": "Movie",
-                "name": d.movieTitle || "",
+                "name": movieName,
                 "datePublished": date,
                 "director": { "@type": "Person", "name": director },
                 "actor": actors,

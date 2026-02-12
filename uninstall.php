@@ -19,6 +19,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  */
 $meta_keys = array(
     '_cb_rating',
+    '_cb_movie_title',
     '_cb_director',
     '_cb_cast',
     '_cb_duration',
@@ -28,6 +29,7 @@ $meta_keys = array(
     '_cb_pros',
     '_cb_cons',
     '_cb_schema_json',
+    '_cb_schema_lock',
 );
 
 // Delete all post meta for each key

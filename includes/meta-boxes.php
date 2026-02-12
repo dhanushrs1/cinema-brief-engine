@@ -40,16 +40,28 @@ function cb_render_data_box( $post ) {
     wp_nonce_field( 'cb_save_data', 'cb_nonce' );
 
     // Get existing values
-    $rating   = get_post_meta( $post->ID, '_cb_rating', true );
-    $director = get_post_meta( $post->ID, '_cb_director', true );
-    $cast     = get_post_meta( $post->ID, '_cb_cast', true );
-    $duration = get_post_meta( $post->ID, '_cb_duration', true );
-    $date     = get_post_meta( $post->ID, '_cb_release_date', true );
-    $verdict  = get_post_meta( $post->ID, '_cb_verdict', true );
-    $synopsis = get_post_meta( $post->ID, '_cb_synopsis', true );
-    $pros     = get_post_meta( $post->ID, '_cb_pros', true );
-    $cons     = get_post_meta( $post->ID, '_cb_cons', true );
+    $movie_title = get_post_meta( $post->ID, '_cb_movie_title', true );
+    $rating      = get_post_meta( $post->ID, '_cb_rating', true );
+    $director    = get_post_meta( $post->ID, '_cb_director', true );
+    $cast        = get_post_meta( $post->ID, '_cb_cast', true );
+    $duration    = get_post_meta( $post->ID, '_cb_duration', true );
+    $date        = get_post_meta( $post->ID, '_cb_release_date', true );
+    $verdict     = get_post_meta( $post->ID, '_cb_verdict', true );
+    $synopsis    = get_post_meta( $post->ID, '_cb_synopsis', true );
+    $pros        = get_post_meta( $post->ID, '_cb_pros', true );
+    $cons        = get_post_meta( $post->ID, '_cb_cons', true );
     ?>
+
+    <!-- Movie Title (for Schema) -->
+    <div class="cb-field cb-field-full">
+        <label for="cb_movie_title">🎬 <?php esc_html_e( 'Movie Title (for Schema)', 'cinemabrief' ); ?></label>
+        <input type="text" id="cb_movie_title" name="cb_movie_title"
+               value="<?php echo esc_attr( $movie_title ); ?>"
+               placeholder="<?php esc_attr_e( 'e.g. Landlord — Enter the exact movie name only', 'cinemabrief' ); ?>">
+        <span class="cb-field-hint"><?php esc_html_e( 'Used as the Movie "name" in Google Schema. If empty, the post title will be used as fallback.', 'cinemabrief' ); ?></span>
+    </div>
+
+    <hr>
 
     <div class="cb-form-grid">
         <div class="cb-form-col">
@@ -143,8 +155,9 @@ function cb_render_data_box( $post ) {
 // 3. THE SCHEMA PREVIEW BOX (No inline JS — uses enqueued admin-schema-preview.js)
 // =============================================================================
 function cb_render_schema_box( $post ) {
-    $schema    = get_post_meta( $post->ID, '_cb_schema_json', true );
-    $permalink = get_permalink( $post->ID );
+    $schema      = get_post_meta( $post->ID, '_cb_schema_json', true );
+    $permalink   = get_permalink( $post->ID );
+    $schema_lock = get_post_meta( $post->ID, '_cb_schema_lock', true );
 
     $google_test_url = 'https://search.google.com/test/rich-results?url=' . urlencode( $permalink );
     ?>
@@ -156,6 +169,10 @@ function cb_render_schema_box( $post ) {
         </div>
 
         <div class="cb-toolbar-actions">
+            <label class="cb-schema-lock-label" title="<?php esc_attr_e( 'When locked, saving the post will NOT overwrite your manual JSON edits.', 'cinemabrief' ); ?>">
+                <input type="checkbox" name="cb_schema_lock" id="cb_schema_lock" value="1" <?php checked( $schema_lock, '1' ); ?> />
+                🔒 <?php esc_html_e( 'Lock Schema', 'cinemabrief' ); ?>
+            </label>
             <a href="<?php echo esc_url( $google_test_url ); ?>" target="_blank" class="button button-small">
                 ⚡ <?php esc_html_e( 'Test Live URL', 'cinemabrief' ); ?>
             </a>

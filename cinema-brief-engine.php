@@ -66,6 +66,7 @@ function cb_load_admin_assets() {
 
             wp_localize_script( 'cb-schema-preview', 'cbSchemaData', array(
                 'movieTitle'    => get_the_title( $post->ID ),
+                'movieName'     => get_post_meta( $post->ID, '_cb_movie_title', true ),
                 'imgUrl'        => $img_url ? $img_url : '',
                 'siteUrl'       => home_url(),
                 'permalink'     => $permalink,

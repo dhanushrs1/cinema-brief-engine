@@ -21,7 +21,7 @@ function cb_save_post_data( $post_id ) {
     if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 
     // Save All Meta Fields
-    $text_fields    = array( 'cb_director', 'cb_cast', 'cb_duration', 'cb_release_date', 'cb_verdict' );
+    $text_fields    = array( 'cb_movie_title', 'cb_director', 'cb_cast', 'cb_duration', 'cb_release_date', 'cb_verdict' );
     $textarea_fields = array( 'cb_pros', 'cb_cons', 'cb_synopsis' );
 
     // --- Rating: Server-side validation (clamp 0-10) ---
@@ -47,11 +47,16 @@ function cb_save_post_data( $post_id ) {
         }
     }
 
+    // Save Schema Lock checkbox
+    $lock_value = isset( $_POST['cb_schema_lock'] ) ? '1' : '0';
+    update_post_meta( $post_id, '_cb_schema_lock', $lock_value );
+
     // 2. FORCE RE-GENERATE SCHEMA (Taxonomy Sync Fix)
-    // Instead of trusting the POSTed JSON (which might have stale Taxonomy data),
-    // we strictly rebuild it using PHP. This ensures Language/Genre are always correct.
-    $json = cb_build_schema( $post_id );
-    update_post_meta( $post_id, '_cb_schema_json', $json );
+    // Skip regeneration if Schema Lock is enabled (user wants manual control)
+    if ( $lock_value !== '1' ) {
+        $json = cb_build_schema( $post_id );
+        update_post_meta( $post_id, '_cb_schema_json', $json );
+    }
 }
 add_action( 'save_post_movie_reviews', 'cb_save_post_data', 20 );
 
@@ -66,6 +71,7 @@ function cb_build_schema( $post_id ) {
 
     // Retrieve Data
     $rating       = get_post_meta( $post_id, '_cb_rating', true );
+    $movie_title  = get_post_meta( $post_id, '_cb_movie_title', true );
     $director     = get_post_meta( $post_id, '_cb_director', true );
     $cast_str     = get_post_meta( $post_id, '_cb_cast', true );
     $date         = get_post_meta( $post_id, '_cb_release_date', true );
@@ -133,9 +139,12 @@ function cb_build_schema( $post_id ) {
     // =========================================================================
     // BUILD THE MOVIE OBJECT
     // =========================================================================
+    // Movie name: use dedicated field, fallback to post title
+    $movie_name = $movie_title ? $movie_title : $post->post_title;
+
     $movie = array(
         "@type"          => "Movie",
-        "name"           => $post->post_title,
+        "name"           => $movie_name,
         "datePublished"  => $date,
         "director"       => array( "@type" => "Person", "name" => $director ),
         "actor"          => $actors,
@@ -198,7 +207,7 @@ function cb_build_schema( $post_id ) {
     // reviewBody: fallback chain — post content → synopsis → generated string
     $review_body = '';
     if ( $post->post_content ) {
-        $review_body = wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 );
+        $review_body = html_entity_decode( wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
     } elseif ( $synopsis ) {
         $review_body = $synopsis;
     } else {
