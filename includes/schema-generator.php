@@ -53,7 +53,7 @@ function cb_save_post_data( $post_id ) {
     $json = cb_build_schema( $post_id );
     update_post_meta( $post_id, '_cb_schema_json', $json );
 }
-add_action( 'save_post_movie_reviews', 'cb_save_post_data' );
+add_action( 'save_post_movie_reviews', 'cb_save_post_data', 20 );
 
 
 // =============================================================================
