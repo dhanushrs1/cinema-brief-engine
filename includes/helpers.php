@@ -52,23 +52,43 @@ function cb_get_language_code( $post_id ) {
         return 'en';
     }
 
-    // Map of taxonomy slugs → ISO 639-1 codes
+    // Map of taxonomy slugs → ISO 639-1 / 639-2 codes
+    // Expanded for regional Indian languages
     $lang_map = array(
-        'kannada'  => 'kn',
-        'english'  => 'en',
-        'hindi'    => 'hi',
-        'tamil'    => 'ta',
-        'telugu'   => 'te',
+        'kannada'   => 'kn',
+        'english'   => 'en',
+        'hindi'     => 'hi',
+        'tamil'     => 'ta',
+        'telugu'    => 'te',
         'malayalam' => 'ml',
-        'marathi'  => 'mr',
-        'bengali'  => 'bn',
+        'marathi'   => 'mr',
+        'bengali'   => 'bn',
+        'gujarati'  => 'gu',
+        'punjabi'   => 'pa',
+        'odia'      => 'or',
+        'assamese'  => 'as',
+        'sanskrit'  => 'sa',
+        'urdu'      => 'ur',
+        'konkani'   => 'kok', // ISO 639-2
+        'tulu'      => 'tcy', // ISO 639-3
+        'bhojpuri'  => 'bho',
+        'manipuri'  => 'mni',
     );
 
     // Get all language terms, not just first (Schema supports arrays)
     $lang_codes = array();
     foreach ( $terms as $term ) {
-        if ( isset( $lang_map[ $term->slug ] ) ) {
+        // 1. Check for manually entered ISO code (Custom Field)
+        $manual_code = get_term_meta( $term->term_id, '_cb_language_code', true );
+        
+        if ( $manual_code ) {
+            $lang_codes[] = $manual_code;
+        } elseif ( isset( $lang_map[ $term->slug ] ) ) {
+            // 2. Fallback to hardcoded map (for existing terms without meta)
             $lang_codes[] = $lang_map[ $term->slug ];
+        } else {
+            // 3. Dynamic Fallback: Use the term name itself
+            $lang_codes[] = $term->name;
         }
     }
 

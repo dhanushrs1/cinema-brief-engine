@@ -15,10 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 function cb_register_cpt() {
     $labels = array(
         'name'               => __( 'Movie Reviews', 'cinemabrief' ),
-        'singular_name'      => __( 'Movie Review', 'cinemabrief' ),
+        'singular_name'      => __( 'Review', 'cinemabrief' ),
         'menu_name'          => __( 'Movie Reviews', 'cinemabrief' ),
         'add_new'            => __( 'Add Review', 'cinemabrief' ),
-        'add_new_item'       => __( 'Add New Movie Review', 'cinemabrief' ),
+        'add_new_item'       => __( 'Add New Review', 'cinemabrief' ),
         'edit_item'          => __( 'Edit Review', 'cinemabrief' ),
         'new_item'           => __( 'New Review', 'cinemabrief' ),
         'view_item'          => __( 'View Review', 'cinemabrief' ),

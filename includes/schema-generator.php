@@ -211,14 +211,17 @@ function cb_build_schema( $post_id ) {
         "publisher"        => $publisher,
     );
 
-    // reviewBody: Priority → Synopsis (meta box) → Post content → omit
-    // Meta box data is the primary source; post content is fallback only.
-    if ( $synopsis ) {
+    // reviewBody: Best Practice → Use the actual review content (or part of it)
+    // Priority: Post Content (trimmed) → Synopsis (meta box) → Generic fallback
+    if ( $post->post_content ) {
+        // Get first 50 words of the actual review, strip tags, decode entities
+        $review_body = wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 );
+        $data["reviewBody"] = html_entity_decode( $review_body, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+    } elseif ( $synopsis ) {
         $data["reviewBody"] = $synopsis;
-    } elseif ( $post->post_content ) {
-        $data["reviewBody"] = html_entity_decode( wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+    } else {
+        $data["reviewBody"] = sprintf( __( 'Review of %s', 'cinemabrief' ), $post->post_title );
     }
-    // If neither exists, omit reviewBody entirely (Google prefers omission over empty/fake data)
 
     // Inject Positive/Negative Notes only if they exist
     if ( ! empty( $positiveNotes ) ) {
