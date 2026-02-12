@@ -183,6 +183,7 @@ function cb_build_schema( $post_id ) {
         "@type"            => "Review",
         "url"              => get_permalink( $post_id ),
         "headline"         => $post->post_title,
+        "inLanguage"       => "en",
         "mainEntityOfPage" => array(
             "@type" => "WebPage",
             "@id"   => get_permalink( $post_id ),

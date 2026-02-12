@@ -119,6 +119,7 @@
                 "@type": "Review",
                 "url": d.permalink || "",
                 "headline": d.movieTitle || "",
+                "inLanguage": "en",
                 "mainEntityOfPage": {
                     "@type": "WebPage",
                     "@id": d.permalink || ""
