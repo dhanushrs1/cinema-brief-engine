@@ -51,9 +51,15 @@ function cb_save_post_data( $post_id ) {
     $lock_value = isset( $_POST['cb_schema_lock'] ) ? '1' : '0';
     update_post_meta( $post_id, '_cb_schema_lock', $lock_value );
 
-    // 2. FORCE RE-GENERATE SCHEMA (Taxonomy Sync Fix)
-    // Skip regeneration if Schema Lock is enabled (user wants manual control)
-    if ( $lock_value !== '1' ) {
+    // 2. SCHEMA REGENERATION
+    // If Lock is ON  → save the user's manually edited JSON from the textarea
+    // If Lock is OFF → auto-regenerate from meta fields (Taxonomy Sync Fix)
+    if ( $lock_value === '1' ) {
+        // Save the manually edited JSON (from the textarea in the Schema Preview box)
+        if ( isset( $_POST['cb_schema_json'] ) ) {
+            update_post_meta( $post_id, '_cb_schema_json', wp_unslash( $_POST['cb_schema_json'] ) );
+        }
+    } else {
         $json = cb_build_schema( $post_id );
         update_post_meta( $post_id, '_cb_schema_json', $json );
     }
@@ -205,16 +211,14 @@ function cb_build_schema( $post_id ) {
         "publisher"        => $publisher,
     );
 
-    // reviewBody: fallback chain — post content → synopsis → generated string
-    $review_body = '';
-    if ( $post->post_content ) {
-        $review_body = html_entity_decode( wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-    } elseif ( $synopsis ) {
-        $review_body = $synopsis;
-    } else {
-        $review_body = sprintf( __( 'Review of %s', 'cinemabrief' ), $post->post_title );
+    // reviewBody: Priority → Synopsis (meta box) → Post content → omit
+    // Meta box data is the primary source; post content is fallback only.
+    if ( $synopsis ) {
+        $data["reviewBody"] = $synopsis;
+    } elseif ( $post->post_content ) {
+        $data["reviewBody"] = html_entity_decode( wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
     }
-    $data["reviewBody"] = $review_body;
+    // If neither exists, omit reviewBody entirely (Google prefers omission over empty/fake data)
 
     // Inject Positive/Negative Notes only if they exist
     if ( ! empty( $positiveNotes ) ) {
