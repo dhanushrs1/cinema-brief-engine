@@ -54,9 +54,14 @@ function cb_render_data_box( $post ) {
     <div class="cb-form-grid">
         <div class="cb-form-col">
             <div class="cb-field">
-                <label for="cb_rating"><?php esc_html_e( 'Rating (0-10)', 'cinemabrief' ); ?></label>
+                <label for="cb_rating"><?php esc_html_e( 'Rating (0-10)', 'cinemabrief' ); ?>
+                    <span class="screen-reader-text"><?php esc_html_e( 'Enter a rating between 0 and 10', 'cinemabrief' ); ?></span>
+                </label>
                 <input type="number" id="cb_rating" name="cb_rating" step="0.1" min="0" max="10"
-                       value="<?php echo esc_attr( $rating ); ?>">
+                       value="<?php echo esc_attr( $rating ); ?>"
+                       title="<?php esc_attr_e( 'Please enter a rating between 0 and 10', 'cinemabrief' ); ?>"
+                       aria-describedby="cb_rating_hint">
+                <span class="cb-field-hint" id="cb_rating_hint"><?php esc_html_e( 'Enter a decimal value from 0 to 10 (e.g., 7.5)', 'cinemabrief' ); ?></span>
             </div>
 
             <div class="cb-field">

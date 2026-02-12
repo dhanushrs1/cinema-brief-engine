@@ -153,9 +153,10 @@ function cb_build_schema( $post_id ) {
     // BUILD THE PUBLISHER OBJECT
     // =========================================================================
     $logo_url  = cb_get_publisher_logo_url();
+    $org_name  = get_bloginfo( 'name' );
     $publisher = array(
         "@type" => "Organization",
-        "name"  => "CinemaBrief",
+        "name"  => $org_name,
         "url"   => home_url(),
     );
     if ( $logo_url ) {
@@ -188,12 +189,22 @@ function cb_build_schema( $post_id ) {
         ),
         "author"           => array(
             "@type" => "Organization",
-            "name"  => "CinemaBrief",
+            "name"  => $org_name,
             "url"   => home_url(),
         ),
         "publisher"        => $publisher,
-        "reviewBody"       => wp_trim_words( $post->post_content, 25 ),
     );
+
+    // reviewBody: fallback chain — post content → synopsis → generated string
+    $review_body = '';
+    if ( $post->post_content ) {
+        $review_body = wp_trim_words( wp_strip_all_tags( $post->post_content ), 50 );
+    } elseif ( $synopsis ) {
+        $review_body = $synopsis;
+    } else {
+        $review_body = sprintf( __( 'Review of %s', 'cinemabrief' ), $post->post_title );
+    }
+    $data["reviewBody"] = $review_body;
 
     // Inject Positive/Negative Notes only if they exist
     if ( ! empty( $positiveNotes ) ) {
@@ -216,8 +227,15 @@ function cb_inject_schema() {
     if ( is_singular( 'movie_reviews' ) ) {
         $json = get_post_meta( get_the_ID(), '_cb_schema_json', true );
         if ( $json ) {
+            // Decode & re-encode for safe output (prevents XSS without breaking JSON)
+            $decoded = json_decode( $json, true );
+            if ( $decoded ) {
+                $safe_json = wp_json_encode( $decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+            } else {
+                $safe_json = $json; // Fallback if decode fails (should not happen)
+            }
             echo "\n\n";
-            echo '<script type="application/ld+json">' . $json . '</script>';
+            echo '<script type="application/ld+json">' . $safe_json . '</script>';
             echo "\n\n";
         }
     }

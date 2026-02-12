@@ -204,7 +204,15 @@ select[name="cb_verdict"] {
 }
 
 /* ==========================================================================
-   11. RESPONSIVE — Stack on narrow screens
+   11. ADMIN COLUMN — RATING COLORS & EMPTY DASH
+   ========================================================================== */
+.cb-rating-high  { color: #46b450; }
+.cb-rating-medium { color: #dba617; }
+.cb-rating-low   { color: #d63638; }
+.cb-empty-dash   { color: #ccc; }
+
+/* ==========================================================================
+   12. RESPONSIVE — Stack on narrow screens
    ========================================================================== */
 @media screen and (max-width: 782px) {
   .cb-form-grid {

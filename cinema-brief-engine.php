@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cinema Brief Engine (Modular)
  * Description: The professional, multi-file architecture for CinemaBrief.in
- * Version: 3.3
+ * Version: 3.4
  * Author: Cinema Brief
  * Text Domain: cinemabrief
  */
@@ -39,7 +39,7 @@ function cb_load_admin_assets() {
         'cb-admin-css',
         CB_ENGINE_URL . 'includes/admin-style.css',
         array(),
-        '3.3'
+        '3.4'
     );
 
     // Schema Preview JS (only on post edit screens)
@@ -49,7 +49,7 @@ function cb_load_admin_assets() {
             'cb-schema-preview',
             CB_ENGINE_URL . 'assets/js/admin-schema-preview.js',
             array(),
-            '3.3',
+            '3.4',
             true
         );
 
@@ -93,7 +93,7 @@ function cb_load_frontend_styles() {
             'cb-frontend-css',
             CB_ENGINE_URL . 'assets/css/frontend-style.css',
             array(),
-            '3.3'
+            '3.4'
         );
     }
 }

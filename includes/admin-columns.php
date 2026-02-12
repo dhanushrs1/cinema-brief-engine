@@ -44,17 +44,17 @@ function cb_custom_column_data( $column, $post_id ) {
             $rating = get_post_meta( $post_id, '_cb_rating', true );
             if ( $rating !== '' && $rating !== false ) {
                 $rating_num = floatval( $rating );
-                // Color code: Green for 7+, Orange for 5-6.9, Red for below 5
+                // CSS class-based color coding (styles in admin-style.css)
                 if ( $rating_num >= 7 ) {
-                    $color = '#46b450';
+                    $class = 'cb-rating-high';
                 } elseif ( $rating_num >= 5 ) {
-                    $color = '#dba617';
+                    $class = 'cb-rating-medium';
                 } else {
-                    $color = '#d63638';
+                    $class = 'cb-rating-low';
                 }
-                echo '<strong style="color:' . esc_attr( $color ) . ';">' . esc_html( $rating ) . '/10</strong>';
+                echo '<strong class="cb-rating ' . esc_attr( $class ) . '">' . esc_html( $rating ) . '/10</strong>';
             } else {
-                echo '<span style="color:#ccc;">—</span>';
+                echo '<span class="cb-empty-dash">—</span>';
             }
             break;
 
@@ -73,13 +73,13 @@ function cb_custom_column_data( $column, $post_id ) {
                 $emoji = isset( $emoji_map[ $verdict ] ) ? $emoji_map[ $verdict ] : '';
                 echo esc_html( $emoji . ' ' . $verdict );
             } else {
-                echo '<span style="color:#ccc;">—</span>';
+                echo '<span class="cb-empty-dash">—</span>';
             }
             break;
 
         case 'cb_director':
             $director = get_post_meta( $post_id, '_cb_director', true );
-            echo $director ? esc_html( $director ) : '<span style="color:#ccc;">—</span>';
+            echo $director ? esc_html( $director ) : '<span class="cb-empty-dash">—</span>';
             break;
 
         case 'cb_release_date':
@@ -89,7 +89,7 @@ function cb_custom_column_data( $column, $post_id ) {
                 $timestamp = strtotime( $date );
                 echo $timestamp ? esc_html( date_i18n( get_option( 'date_format' ), $timestamp ) ) : esc_html( $date );
             } else {
-                echo '<span style="color:#ccc;">—</span>';
+                echo '<span class="cb-empty-dash">—</span>';
             }
             break;
     }
@@ -114,6 +114,11 @@ function cb_sortable_columns( $columns ) {
 add_action( 'pre_get_posts', 'cb_custom_column_orderby' );
 function cb_custom_column_orderby( $query ) {
     if ( ! is_admin() || ! $query->is_main_query() ) {
+        return;
+    }
+
+    // Only run for movie_reviews post type (performance fix)
+    if ( get_query_var( 'post_type' ) !== 'movie_reviews' ) {
         return;
     }
 

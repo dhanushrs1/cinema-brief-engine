@@ -62,9 +62,19 @@ add_action( 'init', 'cb_register_cpt' );
 
 /**
  * [cb_pros_list] — Display pros with checkmarks.
+ * Supports: [cb_pros_list] (auto-detect) or [cb_pros_list id="123"] (explicit)
  */
-add_shortcode( 'cb_pros_list', function() {
-    $pros = get_post_meta( get_the_ID(), '_cb_pros', true );
+add_shortcode( 'cb_pros_list', function( $atts ) {
+    $atts = shortcode_atts( array(
+        'id' => get_the_ID(),
+    ), $atts );
+
+    $post_id = intval( $atts['id'] );
+    if ( ! $post_id ) {
+        return '';
+    }
+
+    $pros = get_post_meta( $post_id, '_cb_pros', true );
     if ( ! $pros ) return '';
 
     $items = explode( "\n", $pros );
@@ -82,9 +92,19 @@ add_shortcode( 'cb_pros_list', function() {
 
 /**
  * [cb_cons_list] — Display cons with crosses.
+ * Supports: [cb_cons_list] (auto-detect) or [cb_cons_list id="123"] (explicit)
  */
-add_shortcode( 'cb_cons_list', function() {
-    $cons = get_post_meta( get_the_ID(), '_cb_cons', true );
+add_shortcode( 'cb_cons_list', function( $atts ) {
+    $atts = shortcode_atts( array(
+        'id' => get_the_ID(),
+    ), $atts );
+
+    $post_id = intval( $atts['id'] );
+    if ( ! $post_id ) {
+        return '';
+    }
+
+    $cons = get_post_meta( $post_id, '_cb_cons', true );
     if ( ! $cons ) return '';
 
     $items = explode( "\n", $cons );

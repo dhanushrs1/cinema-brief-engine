@@ -64,8 +64,20 @@ function cb_get_language_code( $post_id ) {
         'bengali'  => 'bn',
     );
 
-    $slug = $terms[0]->slug;
-    return isset( $lang_map[ $slug ] ) ? $lang_map[ $slug ] : 'en';
+    // Get all language terms, not just first (Schema supports arrays)
+    $lang_codes = array();
+    foreach ( $terms as $term ) {
+        if ( isset( $lang_map[ $term->slug ] ) ) {
+            $lang_codes[] = $lang_map[ $term->slug ];
+        }
+    }
+
+    if ( count( $lang_codes ) > 1 ) {
+        return $lang_codes;
+    } elseif ( count( $lang_codes ) === 1 ) {
+        return $lang_codes[0];
+    }
+    return 'en';
 }
 
 
@@ -100,9 +112,10 @@ function cb_convert_duration_to_iso( $raw ) {
         $minutes = intval( $pure[1] );
     }
 
-    if ( $hours === 0 && $minutes === 0 ) {
-        return '';
-    }
+    // Validation: reject unrealistic movie durations
+    if ( $hours > 10 ) return '';       // Movies longer than 10 hours are unrealistic
+    if ( $minutes > 600 ) return '';     // 600 minutes = 10 hours
+    if ( $hours === 0 && $minutes === 0 ) return '';
 
     $iso = 'PT';
     if ( $hours > 0 )   $iso .= $hours . 'H';
