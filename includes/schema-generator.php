@@ -47,30 +47,11 @@ function cb_save_post_data( $post_id ) {
         }
     }
 
-    // Handle Schema Generation
-    if ( ! empty( $_POST['cb_schema_json'] ) ) {
-        // Manual override — validate as JSON to prevent XSS
-        $raw_json = wp_unslash( $_POST['cb_schema_json'] );
-        $decoded  = json_decode( $raw_json );
-
-        if ( json_last_error() === JSON_ERROR_NONE && $decoded !== null ) {
-            // Re-encode to sanitize — strips any non-JSON content
-            $clean_json = json_encode(
-                $decoded,
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-            );
-            update_post_meta( $post_id, '_cb_schema_json', $clean_json );
-        }
-        // If invalid JSON, ignore the manual input and auto-generate
-        else {
-            $json = cb_build_schema( $post_id );
-            update_post_meta( $post_id, '_cb_schema_json', $json );
-        }
-    } else {
-        // Auto-Generate schema based on meta data
-        $json = cb_build_schema( $post_id );
-        update_post_meta( $post_id, '_cb_schema_json', $json );
-    }
+    // 2. FORCE RE-GENERATE SCHEMA (Taxonomy Sync Fix)
+    // Instead of trusting the POSTed JSON (which might have stale Taxonomy data),
+    // we strictly rebuild it using PHP. This ensures Language/Genre are always correct.
+    $json = cb_build_schema( $post_id );
+    update_post_meta( $post_id, '_cb_schema_json', $json );
 }
 add_action( 'save_post_movie_reviews', 'cb_save_post_data' );
 
